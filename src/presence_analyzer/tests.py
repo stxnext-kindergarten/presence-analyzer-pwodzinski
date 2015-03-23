@@ -93,6 +93,26 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
             ]
         )
 
+    def test_presence_start_end_view(self):
+        resp = self.client.get('/api/v1/mean_time_start_end/12')
+        self.assertEqual(resp.status_code, 404)
+
+        resp = self.client.get('/api/v1/mean_time_start_end/10')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content_type, 'application/json')
+        self.assertEqual(
+            json.loads(resp.data),
+            [
+                [u'Mon', 0, 0],
+                [u'Tue', 34745.0, 64792.0],
+                [u'Wed', 33592.0, 58057.0],
+                [u'Thu', 38926.0, 62631.0],
+                [u'Fri', 0, 0],
+                [u'Sat', 0, 0],
+                [u'Sun', 0, 0]
+            ]
+        )
+
 
 class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
     """
@@ -195,6 +215,22 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         self.assertEqual(utils.mean([]), 0)
         self.assertEqual(utils.mean([-1]), -1)
         self.assertEqual(utils.mean([0]), 0)
+
+    def test_group_by_start_end(self):
+        data = utils.get_data()
+        start_end = utils.group_by_start_end(data[11])
+        self.assertEqual(
+            start_end,
+            {
+                0: [[33134], [57257]],
+                1: [[33590], [50154]],
+                2: [[33206], [58527]],
+                3: [[37116, 34088], [60085, 57087]],
+                4: [[47816], [54242]],
+                5: [[], []],
+                6: [[], []],
+            }
+        )
 
 
 def suite():
