@@ -4,8 +4,10 @@ Defines views.
 """
 
 import calendar
-from jinja2 import TemplateNotFound
-from flask import redirect, abort, render_template, url_for
+import logging
+from flask import redirect, abort, url_for
+from flask.ext.mako import MakoTemplates, render_template
+from mako.exceptions import TopLevelLookupException
 
 from presence_analyzer.main import app
 from presence_analyzer.utils import (
@@ -16,7 +18,8 @@ from presence_analyzer.utils import (
     group_by_start_end
 )
 
-import logging
+mako = MakoTemplates(app)
+
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
@@ -41,7 +44,7 @@ def viewer(template):
 
     try:
         return render_template(template+'.html', selected=template, base=sites)
-    except TemplateNotFound:
+    except TopLevelLookupException:
         abort(404)
 
 
