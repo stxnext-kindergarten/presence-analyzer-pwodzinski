@@ -15,7 +15,8 @@ from presence_analyzer.utils import (
     get_data,
     mean,
     group_by_weekday,
-    group_by_start_end
+    group_by_start_end,
+    parse_xml
 )
 
 mako = MakoTemplates(app)
@@ -58,6 +59,23 @@ def users_view():
     return [
         {'user_id': i, 'name': 'User {0}'.format(str(i))}
         for i in data.keys()
+    ]
+
+
+@app.route('/api/v2/users', methods=['GET'])
+@jsonify
+def users_view2():
+    """
+    Users listing for dropdown.
+    """
+    data = parse_xml()
+    return [
+        {
+            'user_id': user_id,
+            'name': data[user_id]['name'],
+            'avatar': data[user_id]['avatar']
+        }
+        for user_id in data.keys()
     ]
 
 

@@ -8,6 +8,7 @@ from functools import partial
 
 import paste.script.command
 import werkzeug.script
+import urllib
 
 etc = partial(os.path.join, 'parts', 'etc')
 
@@ -16,6 +17,7 @@ DEPLOY_CFG = etc('deploy.cfg')
 
 DEBUG_INI = etc('debug.ini')
 DEBUG_CFG = etc('debug.cfg')
+
 
 _buildout_path = __file__
 for i in range(2 + __name__.count('.')):
@@ -111,3 +113,8 @@ def run():
         _serve('stop', dry_run=dry_run)
 
     werkzeug.script.run()
+
+
+def update_xml_web():
+    app = make_app()
+    urllib.urlretrieve(app.config['DATA_XML_WEB'], app.config['DATA_XML'])
