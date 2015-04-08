@@ -2,11 +2,13 @@
 """
 Helper functions used in views.
 """
+from __future__ import unicode_literals
 
 import csv
 from json import dumps
 from functools import wraps
 from datetime import datetime
+from lxml import etree
 
 from flask import Response
 
@@ -52,7 +54,7 @@ def get_data():
     """
     data = {}
     with open(app.config['DATA_CSV'], 'r') as csvfile:
-        presence_reader = csv.reader(csvfile, delimiter=',')
+        presence_reader = csv.reader(csvfile, delimiter=str(','))
         for i, row in enumerate(presence_reader):
             if len(row) != 4:
                 # ignore header and footer lines
@@ -67,6 +69,28 @@ def get_data():
                 log.debug('Problem with line %d: ', i, exc_info=True)
 
             data.setdefault(user_id, {})[date] = {'start': start, 'end': end}
+
+    return data
+
+
+def parse_xml():
+    """
+    Extracts users' name and avatar from given xml document.
+    """
+    data = {}
+    tree = etree.parse(app.config['DATA_XML'])
+    root = tree.getroot()
+    serv = ('{}://{}:{}'.format(
+        root.findtext('./server/protocol'),
+        root.findtext('./server/host'),
+        root.findtext('./server/port')
+        )
+    )
+
+    for user in root.findall('./users/user'):
+        avatar = ''.join((serv, user.find('avatar').text))
+        name = user.find('name').text
+        data[int(user.get('id'))] = {'name': name, 'avatar': avatar}
 
     return data
 

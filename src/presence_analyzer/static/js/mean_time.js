@@ -3,7 +3,7 @@ google.load("visualization", "1", {packages:["corechart"], 'language': 'pl'});
 (function($) {
     $(document).ready(function() {
         var loading = $('#loading');
-        $.getJSON("/api/v1/users", function(result) {
+        $.getJSON("/api/v2/users", function(result) {
             var dropdown = $("#user_id");
             $.each(result, function(item) {
                 dropdown.append($("<option />").val(this.user_id).text(this.name));
@@ -17,6 +17,14 @@ google.load("visualization", "1", {packages:["corechart"], 'language': 'pl'});
             if(selected_user) {
                 loading.show();
                 chart_div.hide();
+                $.getJSON("/api/v2/users", function(result) {
+                    $.each(result, function(item) {
+                        if (selected_user == this.user_id) {
+                            userPhoto = $("#userPhoto").attr("src", this.avatar)
+                        }
+                    });
+                    userPhoto.show();
+                });
                 $.getJSON("/api/v1/mean_time_weekday/"+selected_user, function(result) {
                     $.each(result, function(index, value) {
                         value[1] = parseInterval(value[1]);
@@ -34,6 +42,10 @@ google.load("visualization", "1", {packages:["corechart"], 'language': 'pl'});
                     loading.hide();
                     var chart = new google.visualization.ColumnChart(chart_div[0]);
                     chart.draw(data, options);
+                }).error(function() {
+                    loading.hide();
+                    chart_div.show();
+                    $('#chart_div').text("No information about user in database!");
                 });
             }
         });
