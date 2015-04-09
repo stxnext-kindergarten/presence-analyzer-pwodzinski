@@ -5,7 +5,7 @@ Defines views.
 
 import calendar
 import logging
-from flask import redirect, abort, url_for
+from flask import redirect, abort
 from flask.ext.mako import MakoTemplates, render_template
 from mako.exceptions import TopLevelLookupException
 

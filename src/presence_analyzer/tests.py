@@ -8,14 +8,15 @@ import os.path
 import json
 import datetime
 import unittest
-import lxml
+import time
 
-from presence_analyzer import main, views, utils
+from presence_analyzer import main, utils
 
 
 TEST_DATA_CSV = os.path.join(
     os.path.dirname(__file__), '..', '..', 'runtime', 'data', 'test_data.csv'
 )
+
 
 TEST_DATA_XML = os.path.join(
     os.path.dirname(__file__), '..', '..', 'runtime', 'data', 'test_users.xml'
@@ -80,6 +81,9 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         )
 
     def test_time_weekday(self):
+        """
+        Test weekday time view.
+        """
         resp = self.client.get('/api/v1/mean_time_weekday/12')
         self.assertEqual(resp.status_code, 404)
 
@@ -100,6 +104,9 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         )
 
     def test_presence_weekday_view(self):
+        """
+        Test presence weekday view.
+        """
         resp = self.client.get('/api/v1/presence_weekday/12')
         self.assertEqual(resp.status_code, 404)
 
@@ -121,6 +128,9 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         )
 
     def test_presence_start_end_view(self):
+        """
+        Test presence start-end view.
+        """
         resp = self.client.get('/api/v1/mean_time_start_end/12')
         self.assertEqual(resp.status_code, 404)
 
@@ -190,6 +200,74 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
             datetime.time(9, 39, 5)
         )
 
+    def test_cache_get_data(self):
+        """
+        Test parsing of CSV file with cache function.
+        """
+        cache_data = utils.CACHE
+        self.assertEqual(cache_data, {})
+
+        user_data = {
+            datetime.date(2013, 9, 10):
+                {
+                    'start': datetime.time(9, 39, 5),
+                    'end': datetime.time(17, 59, 52)
+                },
+            datetime.date(2013, 9, 12):
+                {
+                    'start': datetime.time(10, 48, 46),
+                    'end': datetime.time(17, 23, 51)
+                },
+            datetime.date(2013, 9, 11):
+                {
+                    'start': datetime.time(9, 19, 52),
+                    'end': datetime.time(16, 7, 37)
+                }
+        }
+
+        utils.get_data()
+
+        self.assertItemsEqual(
+            user_data,
+            utils.CACHE['get_data']['value'][10]
+        )
+
+        time_before = utils.CACHE['get_data']['time']
+
+        utils.CACHE['get_data']['value'][10] = {
+            'temp_data':
+                {
+                    'xyz': 123,
+                    'abc': 456
+                }
+        }
+
+        self.assertNotEqual(user_data, utils.CACHE['get_data']['value'][10])
+
+        utils.get_data()
+        time_after = utils.CACHE['get_data']['time']
+        self.assertEqual(time_before, time_after)
+
+        time.sleep(1)
+        utils.get_data()
+        time_after = utils.CACHE['get_data']['time']
+        self.assertNotEqual(time_before, time_after)
+
+        utils.CACHE = {}
+
+    def test_is_obsolete(self):
+        """
+        Test checking obsolete time.
+        """
+        self.assertFalse(utils.is_obsolete({'time': 0}, 50000000000000))
+        self.assertTrue(utils.is_obsolete({'time': 0}, 100))
+
+        self.assertTrue(utils.is_obsolete({'time': -50}, 5))
+        self.assertTrue(utils.is_obsolete({'time': -50}, time.time()))
+
+        self.assertFalse(utils.is_obsolete({'time': time.time()}, 1))
+        self.assertTrue(utils.is_obsolete({'time': time.time()}, -5))
+
     def test_parse_xml(self):
         """
         Test parsing of XML file.
@@ -201,6 +279,9 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         self.assertEqual(data[176]['name'], 'Adrian K.')
 
     def test_group_by_weekday(self):
+        """
+        Test grouping by weekday function.
+        """
         data = utils.get_data()
         weekdays = utils.group_by_weekday(data[10])
         self.assertEqual(len(weekdays), 7)
@@ -218,6 +299,9 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         )
 
     def test_seconds_since_midnight(self):
+        """
+        Test counting seconds since midnight.
+        """
         data = utils.get_data()
         sample_date = datetime.date(2013, 9, 10)
         get_time = data[10][sample_date]['start']
@@ -239,6 +323,9 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         )
 
     def test_interval(self):
+        """
+        Test interval function.
+        """
         data = utils.get_data()
         sample_date = datetime.date(2013, 9, 10)
         get_time_start = data[10][sample_date]['start']
@@ -263,6 +350,9 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         )
 
     def test_mean(self):
+        """
+        Test 'mean value' function.
+        """
         self.assertAlmostEqual(utils.mean([2.4, 23.4, 4.3, 45]), 18.775)
         self.assertAlmostEqual(utils.mean([14.1, 26, 35.1, 0.1]), 18.825)
         self.assertAlmostEqual(utils.mean([1, 2, 3, 4]), 2.5)
@@ -271,6 +361,9 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         self.assertEqual(utils.mean([0]), 0)
 
     def test_group_by_start_end(self):
+        """
+        Test grouping by start-end.
+        """
         data = utils.get_data()
         start_end = utils.group_by_start_end(data[11])
         self.assertEqual(

@@ -5,6 +5,8 @@ Helper functions used in views.
 from __future__ import unicode_literals
 
 import csv
+import time
+import threading
 from json import dumps
 from functools import wraps
 from datetime import datetime
@@ -16,6 +18,9 @@ from presence_analyzer.main import app
 
 import logging
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
+
+CACHE = {}
+LOCK = threading.Lock()
 
 
 def jsonify(function):
@@ -34,6 +39,53 @@ def jsonify(function):
     return inner
 
 
+def locker(function):
+    """
+    Starting new thread.
+    """
+    @wraps(function)
+    def _locker(*args, **kwrgs):
+        """
+        Locking function.
+        """
+        with LOCK:
+            return function(*args, **kwrgs)
+    return _locker
+
+
+def is_obsolete(entry, duration):
+    """
+    Checking if cache time is older than duration.
+    """
+    return time.time() - entry['time'] > (float(duration) / 1000)
+
+
+def memoize(duration):
+    """
+    Creating cache with users' data.
+    """
+    def _memoize(function):
+        """
+        Taking a function.
+        """
+        @wraps(function)
+        def __memoize(*args, **kw):
+            """
+            Creating cache.
+            """
+            key = function.__name__
+
+            if key in CACHE and not is_obsolete(CACHE[key], duration):
+                return CACHE[key]['value']
+            result = function(*args, **kw)
+            CACHE[key] = {'value': result, 'time': time.time()}
+            return result
+        return __memoize
+    return _memoize
+
+
+@locker
+@memoize(600)
 def get_data():
     """
     Extracts presence data from CSV file and groups it by user_id.
@@ -84,8 +136,7 @@ def parse_xml():
         root.findtext('./server/protocol'),
         root.findtext('./server/host'),
         root.findtext('./server/port')
-        )
-    )
+        ))
 
     for user in root.findall('./users/user'):
         avatar = ''.join((serv, user.find('avatar').text))
@@ -107,11 +158,11 @@ def group_by_weekday(items):
     return result
 
 
-def seconds_since_midnight(time):
+def seconds_since_midnight(timer):
     """
     Calculates amount of seconds since midnight.
     """
-    return time.hour * 3600 + time.minute * 60 + time.second
+    return timer.hour * 3600 + timer.minute * 60 + timer.second
 
 
 def interval(start, end):
