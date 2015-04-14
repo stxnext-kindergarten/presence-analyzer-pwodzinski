@@ -15,6 +15,7 @@ from presence_analyzer.utils import (
     get_data,
     mean,
     group_by_weekday,
+    total_group_by_weekday,
     group_by_start_end,
     parse_xml
 )
@@ -41,6 +42,7 @@ def viewer(template):
         'mean_time_weekday': 'Presence mean time',
         'presence_weekday': 'Presence by weekday',
         'presence_start_end': 'Presence start-end',
+        'presence_total_hour': 'User hours vs total hours'
     }
 
     try:
@@ -117,6 +119,34 @@ def presence_weekday_view(user_id):
     ]
 
     result.insert(0, ('Weekday', 'Presence (s)'))
+    return result
+
+
+@app.route('/api/v2/total_hour/<int:user_id>', methods=['GET'])
+@jsonify
+def presence_total_hour(user_id):
+    """
+    Returns user daily time and total daily time of all users.
+    """
+    data = get_data()
+
+    if user_id not in data:
+        log.debug('User %s not found!', user_id)
+        abort(404)
+
+    get_total_hours = total_group_by_weekday(data)
+
+    weekdays = group_by_weekday(data[user_id])
+    result = [
+        (
+            calendar.day_abbr[weekday],
+            float("%0.2f" % (float(sum(intervals)) / 3600)),
+            float("%0.2f" % (float(get_total_hours[weekday]) / 3600))
+        )
+        for weekday, intervals in enumerate(weekdays)
+    ]
+
+    result.insert(0, ('Weekday', 'User hours', 'Total hours'))
     return result
 
 

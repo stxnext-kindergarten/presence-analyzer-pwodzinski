@@ -50,6 +50,30 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 302)
         assert resp.headers['Location'].endswith('/presence_weekday')
 
+    def test_total_hour(self):
+        """
+        Test api for total hours sorted by day.
+        """
+        resp = self.client.get('/api/v2/total_hour/10')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content_type, 'application/json')
+        self.assertEqual(
+            json.loads(resp.data),
+            [
+                ['Weekday', 'User hours', 'Total hours'],
+                ['Mon', 0.00, 6.70],
+                ['Tue', 8.35, 12.95],
+                ['Wed', 6.80, 13.83],
+                ['Thu', 6.58, 19.35],
+                ['Fri', 0.00, 1.78],
+                ['Sat', 0.00, 0.00],
+                ['Sun', 0.00, 0.00]
+            ]
+        )
+
+        resp = self.client.get('/api/v1/mean_time_weekday/12')
+        self.assertEqual(resp.status_code, 404)
+
     def test_api_users(self):
         """
         Test users listing.
@@ -63,7 +87,7 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
 
     def test_api_users_2(self):
         """
-        Test api for data from xml file
+        Test api for data from xml file.
         """
         resp = self.client.get('/api/v2/users')
         self.assertEqual(resp.status_code, 200)
@@ -296,6 +320,16 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
                 [],
                 [],
             ]
+        )
+
+    def test_total_group_by_weekday(self):
+        """
+        Test grouping by weekday function for all users.
+        """
+        weekdays = utils.total_group_by_weekday(utils.get_data())
+        self.assertEqual(
+            weekdays,
+            [24123, 46611, 49786, 69673, 6426, 0, 0]
         )
 
     def test_seconds_since_midnight(self):

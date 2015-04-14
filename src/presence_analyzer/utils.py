@@ -146,6 +146,23 @@ def parse_xml():
     return data
 
 
+def total_group_by_weekday(items):
+    """
+    Groups presence total users entries by weekday.
+    """
+    result = [[] for i in range(7)]  # one list for every day in week
+
+    for value in items.values():
+        for date, item in value.items():
+            start = item['start']
+            end = item['end']
+            result[date.weekday()].append(interval(start, end))
+
+    result = [sum(items) for items in result]
+
+    return result
+
+
 def group_by_weekday(items):
     """
     Groups presence entries by weekday.
