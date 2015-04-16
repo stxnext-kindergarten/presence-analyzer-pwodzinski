@@ -5,6 +5,7 @@ Defines views.
 
 import calendar
 import logging
+import locale
 from flask import redirect, abort
 from flask.ext.mako import MakoTemplates, render_template
 from mako.exceptions import TopLevelLookupException
@@ -70,8 +71,9 @@ def users_view2():
     """
     Users listing for dropdown.
     """
+    locale.setlocale(locale.LC_COLLATE, "")
     data = parse_xml()
-    return [
+    values = [
         {
             'user_id': user_id,
             'name': data[user_id]['name'],
@@ -79,6 +81,9 @@ def users_view2():
         }
         for user_id in data.keys()
     ]
+    values.sort(key=lambda x: x['name'], cmp=locale.strcoll)
+
+    return values
 
 
 @app.route('/api/v1/mean_time_weekday/<int:user_id>', methods=['GET'])
